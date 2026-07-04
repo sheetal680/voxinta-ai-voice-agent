@@ -53,9 +53,11 @@ max_frequency = "1m"
 
 [auth.email.template.confirmation]
 subject = "Confirm your Voxinta account"
+content_path = "./supabase/templates/confirmation.html"
 
 [auth.email.template.recovery]
 subject = "Reset your Voxinta password"
+content_path = "./supabase/templates/recovery.html"
 
 # External OAuth providers are intentionally disabled for the MVP.
 [auth.external.google]

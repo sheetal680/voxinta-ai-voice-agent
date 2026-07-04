@@ -1,12 +1,12 @@
 import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { updateSession } from "@/lib/supabase/proxy";
 
 /**
- * Root middleware: keeps the Supabase auth session fresh on every request.
- * Route protection (redirecting unauthenticated users) is layered on later
- * once the auth pages exist.
+ * Root Proxy (Next.js 16 renamed `middleware.ts` -> `proxy.ts`; see
+ * AGENTS.md). Keeps the Supabase auth session fresh on every request and
+ * enforces coarse route protection — see lib/supabase/proxy.ts.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   return await updateSession(request);
 }
 
