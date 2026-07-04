@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AgentForm } from "@/features/agents/components/agent-form";
 import { DeleteAgentDialog } from "@/features/agents/components/delete-agent-dialog";
 import { getAgent } from "@/features/agents/queries";
+import { StartChatButton } from "@/features/chat/components/start-chat-button";
 
 // Depends on the caller's cookie-scoped auth session — must never be
 // statically prerendered.
@@ -40,7 +41,10 @@ export default async function AgentDetailPage({
             Update this agent&apos;s configuration below.
           </p>
         </div>
-        <DeleteAgentDialog agentId={agent.id} agentName={agent.name} />
+        <div className="flex items-start gap-2">
+          <StartChatButton agentId={agent.id} />
+          <DeleteAgentDialog agentId={agent.id} agentName={agent.name} />
+        </div>
       </div>
       <AgentForm agent={agent} />
     </div>
