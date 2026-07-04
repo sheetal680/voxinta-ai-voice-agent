@@ -1,0 +1,62 @@
+# Supabase local/config for Voxinta.
+# Review-only: this is NOT yet applied to a hosted project.
+# Docs: https://supabase.com/docs/guides/local-development/cli/config
+
+project_id = "voxinta"
+
+[api]
+enabled = true
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+
+[storage]
+enabled = true
+# Buckets for knowledge-base uploads are created via migration/dashboard.
+
+# ---------------------------------------------------------------------------
+# Auth: email + password with email verification and password reset enabled.
+# ---------------------------------------------------------------------------
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# Allow new users to sign up.
+enable_signup = true
+# Require a valid, non-disposable email.
+enable_anonymous_sign_ins = false
+
+[auth.email]
+# Email/password auth on.
+enable_signup = true
+# Require users to confirm their email before the account is usable
+# (email verification).
+enable_confirmations = true
+# Require confirming a change to the email address.
+double_confirm_changes = true
+# Require the current password when changing password (defense in depth).
+secure_password_change = true
+# Minimum password length.
+# (Password reset / recovery emails are sent automatically for the email
+#  provider; the app calls supabase.auth.resetPasswordForEmail().)
+max_frequency = "1m"
+
+[auth.email.template.confirmation]
+subject = "Confirm your Voxinta account"
+
+[auth.email.template.recovery]
+subject = "Reset your Voxinta password"
+
+# External OAuth providers are intentionally disabled for the MVP.
+[auth.external.google]
+enabled = false
