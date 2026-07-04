@@ -47,4 +47,6 @@
 
 ## Stack
 
-Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS · Shadcn UI (neutral base) · Framer Motion · React Hook Form · Zod · Supabase · Groq.
+Next.js 16 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS v4 · Shadcn UI (neutral base, Base UI) · Framer Motion · React Hook Form · Zod · Supabase · Groq.
+
+> **Version note:** the PRD ([`PRD.md`](./PRD.md)) specifies Next.js 15, but we intentionally run **Next.js 16** — the current stable line that `create-next-app` scaffolds (React 19.2, Tailwind v4, Base-UI-based Shadcn). Treat the PRD's "Next.js 15" as "latest App Router." Because this Next version post-dates the training cutoff, **read `AGENTS.md` / `node_modules/next/dist/docs/` before writing framework code.**
