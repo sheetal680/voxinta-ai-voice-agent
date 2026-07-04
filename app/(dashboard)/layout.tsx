@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { signOut } from "@/lib/auth/actions";
-import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "./_components/app-sidebar";
 
 /**
  * Defense-in-depth auth guard for every /dashboard/** route.
@@ -27,19 +28,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b px-6 py-4">
-        <span className="text-sm font-semibold tracking-tight">Voxinta</span>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">{user.email}</span>
-          <form action={signOut}>
-            <Button type="submit" variant="outline" size="sm">
-              Sign out
-            </Button>
-          </form>
-        </div>
-      </header>
-      <main className="flex-1 p-6">{children}</main>
-    </div>
+    <SidebarProvider>
+      <AppSidebar userEmail={user.email ?? ""} />
+      <SidebarInset>
+        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b border-border/50 bg-background/70 px-4 backdrop-blur-lg">
+          <SidebarTrigger />
+          <Separator orientation="vertical" className="h-5" />
+          <span className="text-sm font-medium text-muted-foreground">Dashboard</span>
+        </header>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
