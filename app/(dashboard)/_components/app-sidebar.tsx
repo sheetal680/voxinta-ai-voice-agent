@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 
 import { signOut } from "@/lib/auth/actions";
 import {
@@ -18,13 +18,14 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { ADMIN_NAV_ITEMS } from "@/features/admin/constants";
 import { NAV_ITEMS } from "./nav-items";
 
 function initials(email: string): string {
   return email.slice(0, 2).toUpperCase();
 }
 
-export function AppSidebar({ userEmail }: { userEmail: string }) {
+export function AppSidebar({ userEmail, isAdmin }: { userEmail: string; isAdmin: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -62,6 +63,30 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center gap-1">
+              <ShieldCheck className="size-3.5" /> Admin
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {ADMIN_NAV_ITEMS.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      isActive={pathname === item.href}
+                      tooltip={item.title}
+                      render={<Link href={item.href} />}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>

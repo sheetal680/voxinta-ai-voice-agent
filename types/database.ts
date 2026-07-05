@@ -436,6 +436,33 @@ export interface Database {
           },
         ];
       };
+      feature_flags: {
+        Row: {
+          id: string;
+          key: string;
+          enabled: boolean;
+          description: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          key: string;
+          enabled?: boolean;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          key?: string;
+          enabled?: boolean;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -496,6 +523,46 @@ export interface Database {
           message_count: number;
         }[];
       };
+      admin_list_users: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          email: string | null;
+          full_name: string | null;
+          avatar_url: string | null;
+          role: string;
+          created_at: string;
+          agent_count: number;
+          conversation_count: number;
+        }[];
+      };
+      admin_list_conversations: {
+        Args: { result_limit?: number };
+        Returns: {
+          id: string;
+          title: string | null;
+          owner_id: string;
+          owner_email: string | null;
+          agent_id: string | null;
+          agent_name: string | null;
+          created_at: string;
+          updated_at: string;
+          message_count: number;
+        }[];
+      };
+      admin_platform_report: {
+        Args: Record<string, never>;
+        Returns: {
+          total_users: number;
+          total_agents: number;
+          total_conversations: number;
+          total_messages: number;
+          total_tool_calls: number;
+          avg_response_time_ms: number | null;
+          total_documents: number;
+          failed_documents: number;
+        }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -524,3 +591,4 @@ export type DocumentChunk = Tables<"document_chunks">;
 export type ToolConfig = Tables<"tool_configs">;
 export type UsageEvent = Tables<"usage_events">;
 export type UserApiKey = Tables<"user_api_keys">;
+export type FeatureFlag = Tables<"feature_flags">;

@@ -27,9 +27,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login?redirectTo=/dashboard");
   }
 
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+
   return (
     <SidebarProvider>
-      <AppSidebar userEmail={user.email ?? ""} />
+      <AppSidebar userEmail={user.email ?? ""} isAdmin={profile?.role === "admin"} />
       <SidebarInset>
         <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b border-border/50 bg-background/70 px-4 backdrop-blur-lg">
           <SidebarTrigger />
