@@ -70,6 +70,8 @@ export default async function ConversationPage({
         conversationId={conversation.id}
         agentName={agent?.name ?? "Agent"}
         agentAvatarUrl={agent?.avatar_url}
+        agentVoice={agent?.voice}
+        agentLanguage={agent?.language}
         initialMessages={chatMessages}
       />
     </div>

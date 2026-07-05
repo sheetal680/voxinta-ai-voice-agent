@@ -10,10 +10,13 @@ export function ChatComposer({
   onSend,
   onStop,
   isStreaming,
+  leadingSlot,
 }: {
   onSend: (content: string) => void;
   onStop: () => void;
   isStreaming: boolean;
+  /** Extra control rendered before the textarea (e.g. a mic button). */
+  leadingSlot?: React.ReactNode;
 }) {
   const [value, setValue] = useState("");
 
@@ -33,6 +36,7 @@ export function ChatComposer({
 
   return (
     <div className="flex items-end gap-2 border-t border-border/50 bg-background/70 p-4 backdrop-blur-lg">
+      {leadingSlot}
       <Textarea
         value={value}
         onChange={(event) => setValue(event.target.value)}

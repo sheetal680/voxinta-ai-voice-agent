@@ -3,6 +3,9 @@
 import { useRef, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MicButton } from "@/features/voice/components/mic-button";
+import { VoiceStatusBar } from "@/features/voice/components/voice-status-bar";
+import { useVoiceConversation } from "@/features/voice/hooks/use-voice-conversation";
 import { ChatComposer } from "./chat-composer";
 import { MessageList } from "./message-list";
 import type { ChatMessageItem } from "./message-bubble";
@@ -11,11 +14,15 @@ export function ChatInterface({
   conversationId,
   agentName,
   agentAvatarUrl,
+  agentVoice,
+  agentLanguage,
   initialMessages,
 }: {
   conversationId: string;
   agentName: string;
   agentAvatarUrl?: string | null;
+  agentVoice?: string | null;
+  agentLanguage?: string | null;
   initialMessages: ChatMessageItem[];
 }) {
   const [messages, setMessages] = useState<ChatMessageItem[]>(initialMessages);
@@ -63,14 +70,23 @@ export function ChatInterface({
     } finally {
       abortControllerRef.current = null;
       setIsStreaming(false);
-      setStreamingContent("");
+      // Deliberately NOT clearing streamingContent here: useVoiceConversation
+      // needs the final accumulated text once isStreaming flips to false, to
+      // flush any trailing sentence that never hit closing punctuation. The
+      // next streamReply() call resets it at the top, so nothing stale leaks
+      // into the following turn.
       if (content.trim()) {
         setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content }]);
       }
     }
   }
 
-  function handleSend(userContent: string) {
+  function handleSend(userContent: string, options: { viaVoice?: boolean } = {}) {
+    // A typed message arriving while a previous voice reply is still being
+    // read aloud shouldn't let that stale speech run into this new turn.
+    if (!options.viaVoice) {
+      voice.cancelSpeaking();
+    }
     setMessages((prev) => [
       ...prev,
       { id: crypto.randomUUID(), role: "user", content: userContent },
@@ -79,6 +95,7 @@ export function ChatInterface({
   }
 
   function handleRegenerate() {
+    voice.cancelSpeaking();
     setMessages((prev) => {
       const last = prev[prev.length - 1];
       return last?.role === "assistant" ? prev.slice(0, -1) : prev;
@@ -89,6 +106,14 @@ export function ChatInterface({
   function handleStop() {
     abortControllerRef.current?.abort();
   }
+
+  const voice = useVoiceConversation({
+    streamingContent,
+    isStreaming,
+    voiceId: agentVoice,
+    lang: agentLanguage,
+    onFinalTranscript: (transcript) => handleSend(transcript, { viaVoice: true }),
+  });
 
   return (
     <div className="flex h-[70vh] min-h-[500px] flex-col overflow-hidden rounded-2xl border border-border/50 bg-card/60 backdrop-blur-md">
@@ -107,7 +132,15 @@ export function ChatInterface({
           </Alert>
         </div>
       )}
-      <ChatComposer onSend={handleSend} onStop={handleStop} isStreaming={isStreaming} />
+      <VoiceStatusBar status={voice.status} interimTranscript={voice.interimTranscript} />
+      <ChatComposer
+        onSend={handleSend}
+        onStop={handleStop}
+        isStreaming={isStreaming}
+        leadingSlot={
+          <MicButton status={voice.status} isSupported={voice.isSupported} onClick={voice.toggleMic} />
+        }
+      />
     </div>
   );
 }
