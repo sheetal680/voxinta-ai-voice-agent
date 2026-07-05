@@ -11,6 +11,18 @@ import { chatRequestSchema } from "@/features/chat/schemas";
 import { retrieveContext } from "@/features/knowledge/retrieval";
 
 /**
+ * Edge Runtime: this route's whole dependency chain is fetch-based (Supabase
+ * JS, Groq via global fetch, the calculator/weather/web-search tools) with
+ * no Node-only APIs — confirmed by grepping for `node:` imports and Buffer
+ * usage before flipping this on. A streaming chat reply is exactly the
+ * latency-sensitive, globally-distributed workload Edge is for. If a future
+ * tool or provider needs a Node-only package (e.g. an SDK requiring
+ * node:crypto, like services/shared/encryption.ts already does elsewhere),
+ * this must come back off Edge.
+ */
+export const runtime = "edge";
+
+/**
  * Persists a tool-calling round's intermediate message (an assistant
  * tool-call request, or a tool's result) so the full transcript survives a
  * page refresh. `toolCalls`/`toolCallId`/`name` have no dedicated columns —

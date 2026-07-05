@@ -9,6 +9,11 @@ import { logger } from "@/lib/logger";
  */
 type EmailOtpType = "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email";
 
+// Edge Runtime: a redirect handler that only calls Supabase auth over
+// fetch — no Node-only APIs — so it benefits from Edge's faster cold start
+// for what's a latency-sensitive first hop after clicking an email link.
+export const runtime = "edge";
+
 /**
  * Handles Supabase email links (signup confirmation, password recovery,
  * email change, invite, magic link). The email templates in

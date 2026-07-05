@@ -9,6 +9,10 @@ import { reportExportQuerySchema } from "@/features/admin/schemas";
  * platform report. A Route Handler (not a Server Action) for the same
  * reason as /api/conversations/export: a file download needs a real HTTP
  * response with Content-Disposition, not a Server Action's return value.
+ *
+ * Deliberately Node (the default), not Edge — same reasoning as
+ * /api/conversations/export: an occasional admin download, not a
+ * latency-sensitive path.
  */
 export async function GET(request: NextRequest) {
   try {

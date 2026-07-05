@@ -15,6 +15,11 @@ import { conversationsExportQuerySchema } from "@/features/chat/schemas";
  *   - `ids=<uuid,uuid,...>` — an explicit set (e.g. one row's "Export").
  *   - otherwise, the same `agentId`/`search`/`from`/`to` filters as the
  *     Conversations list — so "Export all" exports whatever's on screen.
+ *
+ * Deliberately Node (the default), not Edge: nothing here is Node-only, but
+ * this is an on-demand, human-triggered download, not the latency-sensitive
+ * streaming path /api/chat is — Edge's cold-start win doesn't move the
+ * needle here the way it does there.
  */
 export async function GET(request: NextRequest) {
   try {
