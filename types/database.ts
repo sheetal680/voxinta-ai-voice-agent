@@ -439,6 +439,26 @@ export interface Database {
           avg_response_time_ms: number | null;
         }[];
       };
+      dashboard_overview_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          total_conversations: number;
+          total_messages: number;
+          total_users: number;
+          avg_response_time_ms: number | null;
+        }[];
+      };
+      usage_over_time: {
+        Args: {
+          granularity?: string;
+          periods?: number;
+        };
+        Returns: {
+          period_start: string;
+          conversation_count: number;
+          message_count: number;
+        }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
