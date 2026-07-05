@@ -33,13 +33,14 @@ export function ThemeToggle() {
         <CardDescription>Choose how Voxinta looks on this device.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="inline-flex items-center gap-1 rounded-lg bg-muted p-0.5">
+        <div role="group" aria-label="Theme" className="inline-flex items-center gap-1 rounded-lg bg-muted p-0.5">
           {THEME_OPTIONS.map((option) => (
             <Button
               key={option.value}
               type="button"
               size="sm"
               variant="ghost"
+              aria-pressed={mounted && theme === option.value}
               className={cn(
                 "gap-1.5 px-3",
                 mounted && theme === option.value && "bg-card shadow-xs",

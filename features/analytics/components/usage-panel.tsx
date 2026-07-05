@@ -25,13 +25,18 @@ export function UsagePanel({
     <Card>
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle>Usage over time</CardTitle>
-        <div className="flex items-center gap-1 rounded-lg bg-muted p-0.5">
+        <div
+          role="group"
+          aria-label="Usage granularity"
+          className="flex items-center gap-1 rounded-lg bg-muted p-0.5"
+        >
           {GRANULARITY_OPTIONS.map((option) => (
             <Button
               key={option.value}
               type="button"
               size="sm"
               variant="ghost"
+              aria-pressed={granularity === option.value}
               className={cn(
                 "h-6.5 px-2.5 text-xs",
                 granularity === option.value && "bg-card shadow-xs",

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { ActionResult } from "@/lib/action-result";
+import { idSchema, type ActionResult } from "@/lib/action-result";
+import { logger } from "@/lib/logger";
 import { getEmbeddingProvider } from "@/services/embeddings";
 import { getAgent } from "@/features/agents/queries";
 import {
@@ -51,7 +52,7 @@ export async function uploadKnowledgeDocument(
   if (!(file instanceof File)) {
     return { success: false, message: "No file provided." };
   }
-  if (typeof agentId !== "string" || !agentId) {
+  if (typeof agentId !== "string" || !idSchema.safeParse(agentId).success) {
     return { success: false, message: "agentId is required." };
   }
 
@@ -111,7 +112,7 @@ export async function uploadKnowledgeDocument(
     .update({ storage_path: storagePath })
     .eq("id", document.id);
   if (updateError) {
-    console.error("[knowledge] failed to record storage_path:", updateError.message);
+    logger.error("knowledge", "Failed to record storage_path", updateError);
   }
 
   revalidatePath(`/dashboard/agents/${agent.id}`);
@@ -119,6 +120,10 @@ export async function uploadKnowledgeDocument(
 }
 
 export async function processKnowledgeDocument(documentId: string): Promise<ActionResult> {
+  if (!idSchema.safeParse(documentId).success) {
+    return { success: false, message: "Invalid document id." };
+  }
+
   const { supabase, user } = await requireUser();
   if (!user) {
     return { success: false, message: "You must be signed in." };
@@ -211,6 +216,10 @@ export async function processKnowledgeDocument(documentId: string): Promise<Acti
 }
 
 export async function deleteKnowledgeDocument(documentId: string): Promise<ActionResult> {
+  if (!idSchema.safeParse(documentId).success) {
+    return { success: false, message: "Invalid document id." };
+  }
+
   const { supabase, user } = await requireUser();
   if (!user) {
     return { success: false, message: "You must be signed in." };
@@ -237,7 +246,7 @@ export async function deleteKnowledgeDocument(documentId: string): Promise<Actio
       .from("documents")
       .remove([document.storage_path]);
     if (removeError) {
-      console.error("[knowledge] failed to remove storage file:", removeError.message);
+      logger.error("knowledge", "Failed to remove storage file", removeError);
     }
   }
 

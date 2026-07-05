@@ -33,3 +33,8 @@ export const toggleFeatureFlagSchema = z.object({
   enabled: z.boolean(),
 });
 export type ToggleFeatureFlagInput = z.infer<typeof toggleFeatureFlagSchema>;
+
+/** Query params for GET /api/admin/report/export. */
+export const reportExportQuerySchema = z.object({
+  format: z.enum(["json", "csv"]).default("json"),
+});

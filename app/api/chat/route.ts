@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 import { getLLMProvider, runWithTools } from "@/services/llm";
 import type { LLMMessage, LLMRole } from "@/types";
 import type { Database, Json } from "@/types/database";
@@ -34,7 +35,7 @@ async function persistIntermediateMessage(
         : {}) as Json,
   });
   if (error) {
-    console.error("[chat] failed to persist intermediate message:", error.message);
+    logger.error("chat", "Failed to persist intermediate message", error);
   }
 }
 
@@ -50,6 +51,22 @@ async function persistIntermediateMessage(
  * see features/chat/actions.ts.
  */
 export async function POST(request: NextRequest) {
+  try {
+    return await handleChatRequest(request);
+  } catch (error) {
+    // Anything unexpected before the stream starts (e.g. createClient()
+    // throwing when Supabase env vars are missing) would otherwise crash
+    // with a generic, non-JSON 500 — this keeps the response shape
+    // consistent with every other failure path in this route.
+    logger.error("chat", "Unexpected failure handling chat request", error);
+    return NextResponse.json(
+      { success: false, message: "Something went wrong. Please try again." },
+      { status: 500 },
+    );
+  }
+}
+
+async function handleChatRequest(request: NextRequest): Promise<Response> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -176,7 +193,7 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         const aborted = error instanceof Error && error.name === "AbortError";
         if (!aborted) {
-          console.error("[chat] streamGenerate failed:", error);
+          logger.error("chat", "streamGenerate failed", error, { conversationId });
         }
       } finally {
         controller.close();
@@ -190,7 +207,9 @@ export async function POST(request: NextRequest) {
             response_time_ms: Date.now() - startedAt,
           });
           if (assistantInsertError) {
-            console.error("[chat] failed to persist assistant reply:", assistantInsertError.message);
+            logger.error("chat", "Failed to persist assistant reply", assistantInsertError, {
+              conversationId,
+            });
           }
         }
       }

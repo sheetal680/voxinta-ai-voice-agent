@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { ActionResult } from "@/lib/action-result";
+import { idSchema, type ActionResult } from "@/lib/action-result";
+import { logger } from "@/lib/logger";
 import { getAgent } from "@/features/agents/queries";
 
 /**
@@ -13,6 +14,10 @@ import { getAgent } from "@/features/agents/queries";
 export async function createConversation(
   agentId: string,
 ): Promise<ActionResult<{ conversationId: string }>> {
+  if (!idSchema.safeParse(agentId).success) {
+    return { success: false, message: "Invalid agent id." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -48,7 +53,7 @@ export async function createConversation(
     });
     if (welcomeError) {
       // Non-fatal — the conversation itself was created successfully.
-      console.error("[chat] failed to insert welcome message:", welcomeError.message);
+      logger.error("chat", "Failed to insert welcome message", welcomeError);
     }
   }
 
@@ -62,6 +67,10 @@ export async function createConversation(
  * RLS alone to report "not found" for someone else's conversation.
  */
 export async function deleteConversation(conversationId: string): Promise<ActionResult> {
+  if (!idSchema.safeParse(conversationId).success) {
+    return { success: false, message: "Invalid conversation id." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

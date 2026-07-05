@@ -68,7 +68,7 @@ export function ConversationFilters({ agents }: { agents: Agent[] }) {
         value={agentParam ?? ALL_AGENTS}
         onValueChange={(value) => updateParam("agent", value === ALL_AGENTS ? "" : (value ?? ""))}
       >
-        <SelectTrigger className="w-40">
+        <SelectTrigger className="w-40" aria-label="Filter by agent">
           <SelectValue placeholder="All agents" />
         </SelectTrigger>
         <SelectContent>

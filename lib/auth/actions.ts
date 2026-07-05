@@ -1,8 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import type { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { fieldErrorsFromZodError, type ActionResult } from "@/lib/action-result";
+import { logger } from "@/lib/logger";
 import {
   forgotPasswordSchema,
   loginSchema,
@@ -31,21 +32,6 @@ import {
  * {signOut}>` button, so its `redirect()` is safe.
  */
 
-export interface ActionResult {
-  success: boolean;
-  message?: string;
-  fieldErrors?: Record<string, string>;
-}
-
-function fieldErrorsFrom(error: z.ZodError): Record<string, string> {
-  const flattened = error.flatten().fieldErrors as Record<string, string[] | undefined>;
-  const result: Record<string, string> = {};
-  for (const [field, messages] of Object.entries(flattened)) {
-    if (messages && messages[0]) result[field] = messages[0];
-  }
-  return result;
-}
-
 /** Absolute site origin, used to build links Supabase emails redirect back to. */
 function getSiteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -57,7 +43,7 @@ export async function login(input: LoginInput): Promise<ActionResult> {
     return {
       success: false,
       message: "Please fix the errors below.",
-      fieldErrors: fieldErrorsFrom(parsed.error),
+      fieldErrors: fieldErrorsFromZodError(parsed.error),
     };
   }
 
@@ -77,7 +63,7 @@ export async function signup(input: SignupInput): Promise<ActionResult> {
     return {
       success: false,
       message: "Please fix the errors below.",
-      fieldErrors: fieldErrorsFrom(parsed.error),
+      fieldErrors: fieldErrorsFromZodError(parsed.error),
     };
   }
 
@@ -109,7 +95,7 @@ export async function requestPasswordReset(input: ForgotPasswordInput): Promise<
     return {
       success: false,
       message: "Please fix the errors below.",
-      fieldErrors: fieldErrorsFrom(parsed.error),
+      fieldErrors: fieldErrorsFromZodError(parsed.error),
     };
   }
 
@@ -122,7 +108,7 @@ export async function requestPasswordReset(input: ForgotPasswordInput): Promise<
     // Log server-side for diagnostics, but never leak provider details to the
     // client — doing so (or varying the message) would let callers enumerate
     // which emails have accounts.
-    console.error("[auth] resetPasswordForEmail failed:", error.message);
+    logger.error("auth", "resetPasswordForEmail failed", error);
   }
 
   return {
@@ -137,7 +123,7 @@ export async function resetPassword(input: ResetPasswordInput): Promise<ActionRe
     return {
       success: false,
       message: "Please fix the errors below.",
-      fieldErrors: fieldErrorsFrom(parsed.error),
+      fieldErrors: fieldErrorsFromZodError(parsed.error),
     };
   }
 

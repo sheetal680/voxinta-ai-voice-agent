@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 
 /**
  * Runtime feature-flag checks, callable from any feature (not just the
@@ -19,7 +20,7 @@ export const isFeatureEnabled = cache(async (key: string): Promise<boolean> => {
     .maybeSingle();
 
   if (error) {
-    console.error(`[feature-flags] failed to read "${key}":`, error.message);
+    logger.error("feature-flags", `Failed to read "${key}"`, error);
     return false;
   }
   // An unrecognized flag defaults to off rather than throwing — a flag that

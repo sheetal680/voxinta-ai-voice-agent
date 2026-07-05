@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 
 /**
  * Mirrors Supabase auth-js's `EmailOtpType` (not re-exported from the
@@ -23,12 +24,18 @@ export async function GET(request: NextRequest) {
   // Prevent open redirects: only ever land on a path within this app.
   const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
 
-  if (tokenHash && type) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
-    if (!error) {
-      return NextResponse.redirect(new URL(next, origin));
+  try {
+    if (tokenHash && type) {
+      const supabase = await createClient();
+      const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+      if (!error) {
+        return NextResponse.redirect(new URL(next, origin));
+      }
     }
+  } catch (error) {
+    // e.g. createClient() throwing when Supabase env vars are missing —
+    // still land the browser somewhere sensible instead of a raw crash.
+    logger.error("auth", "Unexpected failure confirming email link", error);
   }
 
   return NextResponse.redirect(new URL("/login?error=confirmation_failed", origin));

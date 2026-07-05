@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { fieldErrorsFromZodError, type ActionResult } from "@/lib/action-result";
+import { logger } from "@/lib/logger";
 import { encryptSecret, previewSecret } from "@/services/shared/encryption";
 import type { Database, Json } from "@/types/database";
 import {
   AI_MAX_TOKENS_CEILING,
+  API_KEY_PROVIDER_VALUES,
   AVATAR_ALLOWED_MIME_TYPES,
   AVATAR_MAX_SIZE_BYTES,
 } from "./constants";
@@ -86,7 +88,7 @@ async function removeAvatarFile(supabase: SupabaseClient<Database>, avatarUrl: s
   if (!path) return;
   const { error } = await supabase.storage.from("avatars").remove([path]);
   if (error) {
-    console.error("[settings] failed to remove avatar file:", error.message);
+    logger.error("settings", "Failed to remove avatar file", error);
   }
 }
 
@@ -276,6 +278,10 @@ export async function saveApiKey(input: ApiKeyFormValues): Promise<ActionResult>
 }
 
 export async function deleteApiKey(provider: string): Promise<ActionResult> {
+  if (!(API_KEY_PROVIDER_VALUES as readonly string[]).includes(provider)) {
+    return { success: false, message: "Invalid provider." };
+  }
+
   const { supabase, user } = await requireUser();
   if (!user) {
     return { success: false, message: "You must be signed in." };

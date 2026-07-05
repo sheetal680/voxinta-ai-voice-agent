@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { fieldErrorsFromZodError, type ActionResult } from "@/lib/action-result";
+import { fieldErrorsFromZodError, idSchema, type ActionResult } from "@/lib/action-result";
 import {
   createFeatureFlagSchema,
   toggleFeatureFlagSchema,
@@ -122,12 +122,17 @@ export async function toggleFeatureFlag(input: ToggleFeatureFlagInput): Promise<
 }
 
 export async function deleteFeatureFlag(id: string): Promise<ActionResult> {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) {
+    return { success: false, message: "Invalid flag id." };
+  }
+
   const { supabase, isAdmin } = await requireAdmin();
   if (!isAdmin) {
     return { success: false, message: "Admin access required." };
   }
 
-  const { error } = await supabase.from("feature_flags").delete().eq("id", id);
+  const { error } = await supabase.from("feature_flags").delete().eq("id", parsed.data);
   if (error) {
     return { success: false, message: error.message };
   }

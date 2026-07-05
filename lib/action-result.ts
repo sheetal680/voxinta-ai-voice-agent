@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { z } from "zod";
 
 /**
  * Consistent response shape for every Server Action in the app (see
@@ -21,3 +21,12 @@ export function fieldErrorsFromZodError(error: z.ZodError): Record<string, strin
   }
   return result;
 }
+
+/**
+ * Every table's primary key is a Postgres `uuid`. Server Actions that take a
+ * bare id string (delete/update-by-id, no other fields) validate it with
+ * this rather than skipping Zod entirely — CLAUDE.md's "Zod validation on
+ * all inputs" applies to a Server Action's id argument the same as it does
+ * to a form's fields.
+ */
+export const idSchema = z.uuid({ message: "Invalid id." });

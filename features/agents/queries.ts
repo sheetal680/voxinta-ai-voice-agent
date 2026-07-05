@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 import type { Agent } from "@/types/database";
 
 /**
@@ -20,7 +21,7 @@ export const getAgents = cache(async (): Promise<Agent[]> => {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("[agents] getAgents failed:", error.message);
+    logger.error("agents", "getAgents failed", error);
     return [];
   }
 
@@ -32,7 +33,7 @@ export const getAgent = cache(async (id: string): Promise<Agent | null> => {
   const { data, error } = await supabase.from("agents").select("*").eq("id", id).maybeSingle();
 
   if (error) {
-    console.error("[agents] getAgent failed:", error.message);
+    logger.error("agents", "getAgent failed", error);
     return null;
   }
 

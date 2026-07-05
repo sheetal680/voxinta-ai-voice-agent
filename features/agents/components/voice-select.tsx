@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type AriaAttributes } from "react";
 import { getTTSProvider } from "@/services/tts";
 import type { TTSVoice } from "@/types";
 import {
@@ -21,9 +21,22 @@ import {
 export function VoiceSelect({
   value,
   onValueChange,
+  id,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
 }: {
   value?: string;
   onValueChange: (value: string) => void;
+  /**
+   * Forwarded to the underlying trigger — when this is used inside a
+   * shadcn `<FormControl>`, `FormControl` injects these via cloneElement
+   * so `<FormLabel htmlFor={id}>` actually points at a real element;
+   * without forwarding them here, the label would have nothing to
+   * associate with.
+   */
+  id?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: AriaAttributes["aria-invalid"];
 }) {
   const [voices, setVoices] = useState<TTSVoice[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -51,7 +64,12 @@ export function VoiceSelect({
     // would make Base UI treat the Select as uncontrolled on first render,
     // then flip to controlled the moment a voice is picked.
     <Select value={value || null} onValueChange={(next) => onValueChange(next ?? "")}>
-      <SelectTrigger className="w-full">
+      <SelectTrigger
+        id={id}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
+        className="w-full"
+      >
         <SelectValue
           placeholder={loaded ? "Default voice" : "Loading voices…"}
         />

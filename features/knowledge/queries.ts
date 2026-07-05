@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 import type { KnowledgeDocument } from "@/types/database";
 
 /**
@@ -17,7 +18,7 @@ export const getDocuments = cache(async (agentId: string): Promise<KnowledgeDocu
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("[knowledge] getDocuments failed:", error.message);
+    logger.error("knowledge", "getDocuments failed", error);
     return [];
   }
 
@@ -33,7 +34,7 @@ export const getDocument = cache(async (id: string): Promise<KnowledgeDocument |
     .maybeSingle();
 
   if (error) {
-    console.error("[knowledge] getDocument failed:", error.message);
+    logger.error("knowledge", "getDocument failed", error);
     return null;
   }
 

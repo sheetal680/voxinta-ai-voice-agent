@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 import { getPlatformReport } from "@/features/admin/queries";
+import { reportExportQuerySchema } from "@/features/admin/schemas";
 
 /**
  * GET /api/admin/report/export — downloads a JSON or CSV snapshot of the
@@ -9,6 +11,18 @@ import { getPlatformReport } from "@/features/admin/queries";
  * response with Content-Disposition, not a Server Action's return value.
  */
 export async function GET(request: NextRequest) {
+  try {
+    return await handleExport(request);
+  } catch (error) {
+    logger.error("admin-report-export", "Unexpected failure exporting platform report", error);
+    return NextResponse.json(
+      { success: false, message: "Something went wrong. Please try again." },
+      { status: 500 },
+    );
+  }
+}
+
+async function handleExport(request: NextRequest): Promise<Response> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,7 +41,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, message: "Report unavailable." }, { status: 500 });
   }
 
-  const format = request.nextUrl.searchParams.get("format") === "csv" ? "csv" : "json";
+  const parsedQuery = reportExportQuerySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
+  if (!parsedQuery.success) {
+    return NextResponse.json(
+      { success: false, message: parsedQuery.error.issues[0]?.message ?? "Invalid request." },
+      { status: 400 },
+    );
+  }
+  const { format } = parsedQuery.data;
   const date = new Date().toISOString().slice(0, 10);
 
   const body =

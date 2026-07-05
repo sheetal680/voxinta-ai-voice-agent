@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 import type { Profile } from "@/types/database";
 
 /**
@@ -20,7 +21,7 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
   const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
 
   if (error) {
-    console.error("[settings] getProfile failed:", error.message);
+    logger.error("settings", "getProfile failed", error);
     return null;
   }
   return data;
@@ -41,7 +42,7 @@ export const getApiKeys = cache(async (): Promise<ApiKeySummary[]> => {
     .order("provider", { ascending: true });
 
   if (error) {
-    console.error("[settings] getApiKeys failed:", error.message);
+    logger.error("settings", "getApiKeys failed", error);
     return [];
   }
 

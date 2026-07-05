@@ -21,3 +21,14 @@ export const chatRequestSchema = z.discriminatedUnion("type", [
   }),
 ]);
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
+
+/** Query params for GET /api/conversations/export. Every field is optional — see the route's own doc comment for how `ids` vs. the filter fields interact. */
+export const conversationsExportQuerySchema = z.object({
+  format: z.enum(["json", "csv"]).default("json"),
+  ids: z.string().optional(),
+  agentId: z.string().optional(),
+  search: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+});
+

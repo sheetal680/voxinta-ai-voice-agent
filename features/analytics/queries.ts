@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 
 /**
  * Read-side data access for the Analytics dashboard. Both queries call SQL
@@ -30,7 +31,7 @@ export const getOverviewStats = cache(async (): Promise<OverviewStats> => {
   const { data, error } = await supabase.rpc("dashboard_overview_stats");
 
   if (error) {
-    console.error("[analytics] getOverviewStats failed:", error.message);
+    logger.error("analytics", "getOverviewStats failed", error);
     return EMPTY_STATS;
   }
 
@@ -59,7 +60,7 @@ export const getUsageOverTime = cache(
     const { data, error } = await supabase.rpc("usage_over_time", { granularity, periods });
 
     if (error) {
-      console.error("[analytics] getUsageOverTime failed:", error.message);
+      logger.error("analytics", "getUsageOverTime failed", error);
       return [];
     }
 

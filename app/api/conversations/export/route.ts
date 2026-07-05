@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 import { buildConversationsCsv, buildConversationsJson } from "@/features/chat/lib/export";
 import { getConversationsForExport, listConversations } from "@/features/chat/queries";
+import { conversationsExportQuerySchema } from "@/features/chat/schemas";
 
 /**
  * GET /api/conversations/export — downloads a JSON or CSV transcript export.
@@ -15,6 +17,18 @@ import { getConversationsForExport, listConversations } from "@/features/chat/qu
  *     Conversations list — so "Export all" exports whatever's on screen.
  */
 export async function GET(request: NextRequest) {
+  try {
+    return await handleExport(request);
+  } catch (error) {
+    logger.error("conversations-export", "Unexpected failure exporting conversations", error);
+    return NextResponse.json(
+      { success: false, message: "Something went wrong. Please try again." },
+      { status: 500 },
+    );
+  }
+}
+
+async function handleExport(request: NextRequest): Promise<Response> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -24,18 +38,25 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, message: "You must be signed in." }, { status: 401 });
   }
 
-  const params = request.nextUrl.searchParams;
-  const format = params.get("format") === "csv" ? "csv" : "json";
-  const idsParam = params.get("ids");
+  const parsedQuery = conversationsExportQuerySchema.safeParse(
+    Object.fromEntries(request.nextUrl.searchParams),
+  );
+  if (!parsedQuery.success) {
+    return NextResponse.json(
+      { success: false, message: parsedQuery.error.issues[0]?.message ?? "Invalid request." },
+      { status: 400 },
+    );
+  }
+  const { format, ids, agentId, search, from, to } = parsedQuery.data;
 
-  const conversationIds = idsParam
-    ? idsParam.split(",").filter(Boolean)
+  const conversationIds = ids
+    ? ids.split(",").filter(Boolean)
     : (
         await listConversations({
-          agentId: params.get("agentId") ?? undefined,
-          search: params.get("search") ?? undefined,
-          fromDate: params.get("from") ?? undefined,
-          toDate: params.get("to") ?? undefined,
+          agentId,
+          search,
+          fromDate: from,
+          toDate: to,
         })
       ).map((conversation) => conversation.id);
 

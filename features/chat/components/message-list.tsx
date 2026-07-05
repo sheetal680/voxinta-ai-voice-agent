@@ -37,16 +37,23 @@ export function MessageList({
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-6 sm:px-6">
-      {messages.map((message) => (
-        <MessageBubble
-          key={message.id}
-          message={message}
-          agentName={agentName}
-          agentAvatarUrl={agentAvatarUrl}
-          showRegenerate={canRegenerateLast && message.id === lastMessage.id}
-          onRegenerate={onRegenerate}
-        />
-      ))}
+      {/* `aria-atomic="false"` so a screen reader announces only each newly
+          added bubble, not the whole transcript every time. The actively
+          streaming reply (below) is deliberately outside this live region —
+          announcing every incoming chunk would talk over itself; the
+          finished message gets announced once it lands here instead. */}
+      <div role="log" aria-live="polite" aria-atomic="false" className="flex flex-col gap-4">
+        {messages.map((message) => (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            agentName={agentName}
+            agentAvatarUrl={agentAvatarUrl}
+            showRegenerate={canRegenerateLast && message.id === lastMessage.id}
+            onRegenerate={onRegenerate}
+          />
+        ))}
+      </div>
 
       {isStreaming && (
         <div className="flex items-start gap-3">
@@ -59,7 +66,7 @@ export function MessageList({
               <MarkdownContent content={streamingContent} />
             </div>
           ) : (
-            <TypingIndicator />
+            <TypingIndicator aria-label={`${agentName} is typing`} />
           )}
         </div>
       )}

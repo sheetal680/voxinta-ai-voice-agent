@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 import { getEmbeddingProvider } from "@/services/embeddings";
 import type { Database } from "@/types/database";
 import { RETRIEVAL_MATCH_COUNT, RETRIEVAL_MIN_SIMILARITY } from "./constants";
@@ -30,7 +31,7 @@ export async function retrieveContext(
     });
 
     if (error) {
-      console.error("[knowledge] retrieval failed:", error.message);
+      logger.error("knowledge", "Retrieval failed", error, { agentId });
       return [];
     }
 
@@ -38,7 +39,7 @@ export async function retrieveContext(
       .filter((row) => row.similarity >= RETRIEVAL_MIN_SIMILARITY)
       .map((row) => row.content);
   } catch (error) {
-    console.error("[knowledge] retrieval failed:", error);
+    logger.error("knowledge", "Retrieval failed", error, { agentId });
     return [];
   }
 }

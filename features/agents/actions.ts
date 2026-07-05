@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { fieldErrorsFromZodError, type ActionResult } from "@/lib/action-result";
+import { fieldErrorsFromZodError, idSchema, type ActionResult } from "@/lib/action-result";
+import { logger } from "@/lib/logger";
 import { AVATAR_ALLOWED_MIME_TYPES, AVATAR_MAX_SIZE_BYTES } from "./constants";
 import { agentFormSchema, type AgentFormInput } from "./schemas";
 
@@ -45,7 +46,7 @@ async function removeAvatarFile(
   const { error } = await supabase.storage.from("avatars").remove([path]);
   if (error) {
     // Best-effort cleanup — a failure here shouldn't fail the caller's mutation.
-    console.error("[agents] failed to remove avatar file:", error.message);
+    logger.error("agents", "Failed to remove avatar file", error);
   }
 }
 
@@ -94,6 +95,10 @@ export async function createAgent(input: AgentFormInput): Promise<ActionResult<{
 }
 
 export async function updateAgent(id: string, input: AgentFormInput): Promise<ActionResult> {
+  if (!idSchema.safeParse(id).success) {
+    return { success: false, message: "Invalid agent id." };
+  }
+
   const parsed = agentFormSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -139,6 +144,10 @@ export async function updateAgent(id: string, input: AgentFormInput): Promise<Ac
 }
 
 export async function deleteAgent(id: string): Promise<ActionResult> {
+  if (!idSchema.safeParse(id).success) {
+    return { success: false, message: "Invalid agent id." };
+  }
+
   const { supabase, user } = await requireUser();
   if (!user) {
     return { success: false, message: "You must be signed in." };

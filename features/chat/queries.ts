@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 import type { Conversation, Message } from "@/types/database";
 
 /**
@@ -51,7 +52,7 @@ export const listConversations = cache(
     });
 
     if (error) {
-      console.error("[chat] listConversations failed:", error.message);
+      logger.error("chat", "listConversations failed", error);
       return [];
     }
 
@@ -79,7 +80,7 @@ export const getConversation = cache(async (id: string): Promise<Conversation | 
     .maybeSingle();
 
   if (error) {
-    console.error("[chat] getConversation failed:", error.message);
+    logger.error("chat", "getConversation failed", error);
     return null;
   }
 
@@ -95,7 +96,7 @@ export const getMessages = cache(async (conversationId: string): Promise<Message
     .order("created_at", { ascending: true });
 
   if (error) {
-    console.error("[chat] getMessages failed:", error.message);
+    logger.error("chat", "getMessages failed", error);
     return [];
   }
 
@@ -125,7 +126,7 @@ export async function getConversationsForExport(conversationIds: string[]): Prom
     .in("id", conversationIds);
 
   if (error || !conversations) {
-    console.error("[chat] getConversationsForExport failed:", error?.message);
+    logger.error("chat", "getConversationsForExport failed", error);
     return [];
   }
 

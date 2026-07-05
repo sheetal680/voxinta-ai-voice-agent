@@ -95,6 +95,7 @@ export function ApiKeyRow({
           <Input
             type="password"
             placeholder={`${label} API key`}
+            aria-label={`${label} API key`}
             value={inputValue}
             onChange={(event) => setInputValue(event.target.value)}
             autoComplete="off"

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 import type { FeatureFlag } from "@/types/database";
 
 /**
@@ -38,7 +39,7 @@ export const getAdminUsers = cache(async (): Promise<AdminUserSummary[]> => {
   const { data, error } = await supabase.rpc("admin_list_users");
 
   if (error) {
-    console.error("[admin] getAdminUsers failed:", error.message);
+    logger.error("admin", "getAdminUsers failed", error);
     return [];
   }
 
@@ -72,7 +73,7 @@ export const getAdminConversations = cache(
     const { data, error } = await supabase.rpc("admin_list_conversations", { result_limit: limit });
 
     if (error) {
-      console.error("[admin] getAdminConversations failed:", error.message);
+      logger.error("admin", "getAdminConversations failed", error);
       return [];
     }
 
@@ -106,7 +107,7 @@ export const getPlatformReport = cache(async (): Promise<PlatformReport | null> 
   const { data, error } = await supabase.rpc("admin_platform_report");
 
   if (error) {
-    console.error("[admin] getPlatformReport failed:", error.message);
+    logger.error("admin", "getPlatformReport failed", error);
     return null;
   }
 
@@ -150,7 +151,7 @@ export const getRecentFailedDocuments = cache(async (limit = 20): Promise<Failed
     .limit(limit);
 
   if (error) {
-    console.error("[admin] getRecentFailedDocuments failed:", error.message);
+    logger.error("admin", "getRecentFailedDocuments failed", error);
     return [];
   }
 
@@ -207,7 +208,7 @@ export const getFeatureFlags = cache(async (): Promise<FeatureFlag[]> => {
   const { data, error } = await supabase.from("feature_flags").select("*").order("key", { ascending: true });
 
   if (error) {
-    console.error("[admin] getFeatureFlags failed:", error.message);
+    logger.error("admin", "getFeatureFlags failed", error);
     return [];
   }
   return data;
