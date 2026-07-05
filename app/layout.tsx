@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
@@ -27,10 +28,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      // next-themes sets the `class`/`style` attribute on this element after
+      // hydration based on localStorage, which the server can't know ahead
+      // of time — suppressHydrationWarning scopes React's mismatch check to
+      // exclude just that, not the rest of the tree.
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full scroll-smooth antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <TooltipProvider>{children}</TooltipProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <TooltipProvider>{children}</TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -399,6 +399,43 @@ export interface Database {
           },
         ];
       };
+      user_api_keys: {
+        Row: {
+          id: string;
+          owner_id: string;
+          provider: string;
+          encrypted_key: string;
+          key_preview: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          provider: string;
+          encrypted_key: string;
+          key_preview: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          provider?: string;
+          encrypted_key?: string;
+          key_preview?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_api_keys_owner_id_fkey";
+            columns: ["owner_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -486,3 +523,4 @@ export type KnowledgeDocument = Tables<"knowledge_documents">;
 export type DocumentChunk = Tables<"document_chunks">;
 export type ToolConfig = Tables<"tool_configs">;
 export type UsageEvent = Tables<"usage_events">;
+export type UserApiKey = Tables<"user_api_keys">;
