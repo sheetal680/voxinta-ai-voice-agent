@@ -4,14 +4,23 @@ import { useState } from "react";
 import { Check, Copy, RotateCcw } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { formatDateTime, formatResponseTime } from "../lib/format";
 import { MarkdownContent } from "./markdown-content";
 
 export interface ChatMessageItem {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /**
+   * Present for messages loaded from history (the Conversations detail
+   * view); absent for a message still in flight in the current session, so
+   * the per-message metadata footer below simply doesn't render for those.
+   */
+  createdAt?: string;
+  responseTimeMs?: number | null;
 }
 
 function initialsFrom(name: string): string {
@@ -89,6 +98,16 @@ export function MessageBubble({
             >
               <RotateCcw className="size-3" />
             </Button>
+          )}
+          {message.createdAt && (
+            <span className="flex items-center gap-1 text-[0.7rem] text-muted-foreground">
+              {formatDateTime(message.createdAt)}
+              {!isUser && message.responseTimeMs != null && (
+                <Badge variant="outline" className="h-4 px-1 text-[0.65rem]">
+                  {formatResponseTime(message.responseTimeMs)}
+                </Badge>
+              )}
+            </span>
           )}
         </div>
       </div>

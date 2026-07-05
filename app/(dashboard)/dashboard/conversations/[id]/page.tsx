@@ -54,6 +54,8 @@ export default async function ConversationPage({
       id: message.id,
       role: message.role as "user" | "assistant",
       content: message.content,
+      createdAt: message.created_at,
+      responseTimeMs: message.response_time_ms,
     }));
 
   return (

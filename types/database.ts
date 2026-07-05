@@ -419,6 +419,26 @@ export interface Database {
           similarity: number;
         }[];
       };
+      list_conversations_with_stats: {
+        Args: {
+          filter_agent_id?: string;
+          filter_search?: string;
+          filter_from?: string;
+          filter_to?: string;
+        };
+        Returns: {
+          id: string;
+          title: string | null;
+          agent_id: string | null;
+          agent_name: string | null;
+          created_at: string;
+          updated_at: string;
+          message_count: number;
+          last_message_at: string | null;
+          last_message_preview: string | null;
+          avg_response_time_ms: number | null;
+        }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
