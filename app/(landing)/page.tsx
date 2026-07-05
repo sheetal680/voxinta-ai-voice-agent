@@ -4,7 +4,6 @@ import { Faq } from "./_components/faq";
 import { Features } from "./_components/features";
 import { Hero } from "./_components/hero";
 import { Pricing } from "./_components/pricing";
-import { Testimonials } from "./_components/testimonials";
 
 export default function LandingPage() {
   return (
@@ -13,7 +12,6 @@ export default function LandingPage() {
       <Features />
       <AiDemo />
       <Pricing />
-      <Testimonials />
       <Faq />
       <Cta />
     </>

@@ -61,6 +61,11 @@ export const aiDemoScript = {
     "Done — you're booked for two at The Garden Bistro tonight at 7:00 PM. Want me to add it to your calendar?",
 };
 
+/**
+ * TODO(launch): every tier's price and feature list below is illustrative,
+ * not final. Replace with real numbers and the actual feature/limit
+ * breakdown before launch.
+ */
 export const pricingTiers = [
   {
     name: "Starter",
@@ -104,27 +109,6 @@ export const pricingTiers = [
     ],
     cta: { label: "Talk to us", href: "/signup" },
     highlighted: false,
-  },
-];
-
-export const testimonials = [
-  {
-    quote:
-      "We replaced our IVR tree with a Voxinta agent in a week. Support call time dropped almost in half.",
-    name: "Priya Nair",
-    role: "Head of Support, Placeholder Co.",
-  },
-  {
-    quote:
-      "The knowledge base hookup meant our agent actually knew our product docs on day one. That's rare.",
-    name: "Marcus Webb",
-    role: "Founder, Sample Labs",
-  },
-  {
-    quote:
-      "Being able to spin up a separate sales agent and support agent from the same dashboard is exactly what we needed.",
-    name: "Elena Torres",
-    role: "Ops Lead, Acme Example Inc.",
   },
 ];
 
