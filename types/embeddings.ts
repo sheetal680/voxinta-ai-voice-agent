@@ -1,17 +1,14 @@
 /**
  * Provider-agnostic embedding data types.
  *
- * Real implementations arrive in the RAG phase (see PRD → "Knowledge Base
- * (RAG)"). For now the interface + a placeholder provider exist so callers
- * can be written against the contract today.
+ * `openai` is the default real provider (see
+ * services/embeddings/providers/openai.provider.ts) — its 1536-dimension
+ * output matches the `vector(1536)` column on `document_chunks`. `cohere`/
+ * `local` are reserved ids for future providers; `placeholder` remains for
+ * tests/environments with no embedding provider configured.
  */
 
-export type EmbeddingProviderId =
-  | "placeholder"
-  | "groq"
-  | "openai"
-  | "cohere"
-  | "local";
+export type EmbeddingProviderId = "placeholder" | "openai" | "cohere" | "local";
 
 export interface EmbedParams {
   /** A single string or a batch of strings to embed. */

@@ -40,7 +40,7 @@ safe default. Override in code by passing an explicit id.
 | LLM        | `LLM_PROVIDER`              | `groq`        | server       |
 | STT        | `NEXT_PUBLIC_STT_PROVIDER`  | `browser`     | client       |
 | TTS        | `NEXT_PUBLIC_TTS_PROVIDER`  | `browser`     | client       |
-| Embeddings | `EMBEDDING_PROVIDER`        | `placeholder` | server       |
+| Embeddings | `EMBEDDING_PROVIDER`        | `openai`      | server       |
 
 STT/TTS use the `NEXT_PUBLIC_` prefix because selection happens in the browser.
 LLM/embeddings keys and selection stay server-side only.
@@ -99,5 +99,7 @@ await tts.speak("Hello there.");
   API / Faster Whisper (server-side, same session interface).
 - **TTS** — `BrowserTTSProvider` (SpeechSynthesis, client-side). Future:
   ElevenLabs, OpenAI TTS, Piper.
-- **Embeddings** — `PlaceholderEmbeddingProvider` (throws; wired up in the RAG
-  phase). Future: Groq/OpenAI/Cohere/local.
+- **Embeddings** — `OpenAIEmbeddingProvider` (`text-embedding-3-small`, 1536
+  dimensions, matches `document_chunks.embedding`). Future: Cohere/local.
+  `PlaceholderEmbeddingProvider` remains registered for environments with no
+  key configured.

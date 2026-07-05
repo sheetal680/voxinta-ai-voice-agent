@@ -5,3 +5,4 @@ export {
   DEFAULT_EMBEDDING_PROVIDER,
 } from "./embeddings.registry";
 export { PlaceholderEmbeddingProvider } from "./providers/placeholder.provider";
+export { OpenAIEmbeddingProvider } from "./providers/openai.provider";

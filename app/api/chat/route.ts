@@ -5,6 +5,7 @@ import type { LLMMessage, LLMRole } from "@/types";
 import { getAgent } from "@/features/agents/queries";
 import { buildSystemPrompt } from "@/features/chat/prompt";
 import { chatRequestSchema } from "@/features/chat/schemas";
+import { retrieveContext } from "@/features/knowledge/retrieval";
 
 /**
  * POST /api/chat — sends a message (or regenerates the last response) and
@@ -83,8 +84,16 @@ export async function POST(request: NextRequest) {
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true });
 
+  // Retrieve knowledge-base context for this turn using the most recent
+  // user message as the query — works for both a fresh message and a
+  // regenerate (which has no new content of its own to embed).
+  const lastUserMessage = [...(history ?? [])].reverse().find((message) => message.role === "user");
+  const context = agent && lastUserMessage
+    ? await retrieveContext(supabase, agent.id, lastUserMessage.content)
+    : [];
+
   const llmMessages: LLMMessage[] = [
-    { role: "system", content: buildSystemPrompt(agent) },
+    { role: "system", content: buildSystemPrompt(agent, context) },
     ...(history ?? []).map((message) => ({
       role: message.role as LLMRole,
       content: message.content,

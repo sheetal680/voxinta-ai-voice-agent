@@ -2,28 +2,28 @@ import type { EmbeddingProviderId } from "@/types";
 import { getEnv } from "@/services/shared/env";
 import { ProviderRegistry } from "@/services/shared/registry";
 import type { IEmbeddingProvider } from "./embeddings.interface";
+import { OpenAIEmbeddingProvider } from "./providers/openai.provider";
 import { PlaceholderEmbeddingProvider } from "./providers/placeholder.provider";
 
 /**
  * Registry of available embedding providers.
  *
- * Only a placeholder is registered for now. During the RAG phase:
- *   1. add the real id to `EmbeddingProviderId` in `types/embeddings.ts`
- *      (already includes groq/openai/cohere/local),
+ * To add another provider (Cohere, a local model):
+ *   1. add its id to `EmbeddingProviderId` in `types/embeddings.ts`
+ *      (already includes cohere/local),
  *   2. implement `IEmbeddingProvider`,
- *   3. register it below and point `EMBEDDING_PROVIDER` at it.
+ *   3. register it below.
  */
-export const embeddingRegistry = new ProviderRegistry<
-  EmbeddingProviderId,
-  IEmbeddingProvider
->().register("placeholder", () => new PlaceholderEmbeddingProvider());
+export const embeddingRegistry = new ProviderRegistry<EmbeddingProviderId, IEmbeddingProvider>()
+  .register("openai", () => new OpenAIEmbeddingProvider())
+  .register("placeholder", () => new PlaceholderEmbeddingProvider());
 
 /** Provider id used when `EMBEDDING_PROVIDER` is unset. */
-export const DEFAULT_EMBEDDING_PROVIDER: EmbeddingProviderId = "placeholder";
+export const DEFAULT_EMBEDDING_PROVIDER: EmbeddingProviderId = "openai";
 
 /**
  * Resolve the active embedding provider. Pass an explicit id to override;
- * otherwise reads `EMBEDDING_PROVIDER`, falling back to the placeholder.
+ * otherwise reads `EMBEDDING_PROVIDER`, falling back to OpenAI.
  */
 export function getEmbeddingProvider(id?: EmbeddingProviderId): IEmbeddingProvider {
   const providerId =
