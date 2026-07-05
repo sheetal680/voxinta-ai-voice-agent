@@ -1,11 +1,42 @@
 import { NextResponse, type NextRequest } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { getLLMProvider } from "@/services/llm";
+import { getLLMProvider, runWithTools } from "@/services/llm";
 import type { LLMMessage, LLMRole } from "@/types";
+import type { Database, Json } from "@/types/database";
 import { getAgent } from "@/features/agents/queries";
 import { buildSystemPrompt } from "@/features/chat/prompt";
 import { chatRequestSchema } from "@/features/chat/schemas";
 import { retrieveContext } from "@/features/knowledge/retrieval";
+
+/**
+ * Persists a tool-calling round's intermediate message (an assistant
+ * tool-call request, or a tool's result) so the full transcript survives a
+ * page refresh. `toolCalls`/`toolCallId`/`name` have no dedicated columns —
+ * they're minor, provider-shaped detail, so they ride in `metadata` rather
+ * than widening the `messages` table for this one feature.
+ */
+async function persistIntermediateMessage(
+  supabase: SupabaseClient<Database>,
+  conversationId: string,
+  agentId: string | null,
+  message: LLMMessage,
+) {
+  const { error } = await supabase.from("messages").insert({
+    conversation_id: conversationId,
+    agent_id: agentId,
+    role: message.role,
+    content: message.content,
+    metadata: (message.toolCalls
+      ? { toolCalls: message.toolCalls }
+      : message.toolCallId
+        ? { toolCallId: message.toolCallId, toolName: message.name }
+        : {}) as Json,
+  });
+  if (error) {
+    console.error("[chat] failed to persist intermediate message:", error.message);
+  }
+}
 
 /**
  * POST /api/chat — sends a message (or regenerates the last response) and
@@ -53,19 +84,26 @@ export async function POST(request: NextRequest) {
   const agent = conversation.agent_id ? await getAgent(conversation.agent_id) : null;
 
   if (parsed.data.type === "regenerate") {
+    // A tool-calling turn leaves several messages after the last user
+    // message (an assistant tool-call request, tool results, possibly
+    // repeated over a few rounds) — not just one. Regenerating means
+    // deleting everything after that last user message, not just the most
+    // recent row.
     const { data: recent } = await supabase
       .from("messages")
       .select("id, role")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: false })
-      .limit(2);
-    const [last, secondLast] = recent ?? [];
+      .limit(50);
+    const messages = recent ?? [];
+    const lastUserIndex = messages.findIndex((message) => message.role === "user");
 
-    if (!last || last.role !== "assistant" || !secondLast || secondLast.role !== "user") {
+    if (messages.length === 0 || messages[0].role !== "assistant" || lastUserIndex === -1) {
       return NextResponse.json({ success: false, message: "Nothing to regenerate." }, { status: 400 });
     }
 
-    await supabase.from("messages").delete().eq("id", last.id);
+    const idsToDelete = messages.slice(0, lastUserIndex).map((message) => message.id);
+    await supabase.from("messages").delete().in("id", idsToDelete);
   } else {
     const { error: insertError } = await supabase.from("messages").insert({
       conversation_id: conversationId,
@@ -80,7 +118,7 @@ export async function POST(request: NextRequest) {
 
   const { data: history } = await supabase
     .from("messages")
-    .select("role, content")
+    .select("role, content, metadata")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true });
 
@@ -94,10 +132,24 @@ export async function POST(request: NextRequest) {
 
   const llmMessages: LLMMessage[] = [
     { role: "system", content: buildSystemPrompt(agent, context) },
-    ...(history ?? []).map((message) => ({
-      role: message.role as LLMRole,
-      content: message.content,
-    })),
+    // Tool-call requests/results carry provider-shaped detail (toolCalls,
+    // toolCallId) that has no dedicated column — it's round-tripped through
+    // `metadata` here so a later turn's history stays a valid tool-calling
+    // transcript (the API rejects a `tool` message not preceded by the
+    // assistant message that requested it).
+    ...(history ?? []).map((message) => {
+      const metadata = (message.metadata ?? {}) as {
+        toolCalls?: LLMMessage["toolCalls"];
+        toolCallId?: string;
+        toolName?: string;
+      };
+      return {
+        role: message.role as LLMRole,
+        content: message.content,
+        ...(metadata.toolCalls ? { toolCalls: metadata.toolCalls } : {}),
+        ...(metadata.toolCallId ? { toolCallId: metadata.toolCallId, name: metadata.toolName } : {}),
+      };
+    }),
   ];
 
   const provider = getLLMProvider();
@@ -108,11 +160,13 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        for await (const chunk of provider.streamGenerate({
+        for await (const chunk of runWithTools(provider, {
           messages: llmMessages,
           temperature: agent?.temperature,
           maxTokens: agent?.max_tokens,
           signal: request.signal,
+          onIntermediateMessage: (message) =>
+            persistIntermediateMessage(supabase, conversationId, agent?.id ?? null, message),
         })) {
           if (chunk.delta) {
             accumulated += chunk.delta;

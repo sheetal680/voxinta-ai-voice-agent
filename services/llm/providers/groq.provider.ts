@@ -4,6 +4,8 @@ import type {
   LLMMessage,
   LLMResponse,
   LLMStreamChunk,
+  LLMToolCall,
+  LLMToolDefinition,
   LLMUsage,
 } from "@/types";
 import { ProviderError } from "@/services/shared/errors";
@@ -22,11 +24,23 @@ const DEFAULT_MODEL = "llama-3.3-70b-versatile";
 
 // --- Minimal shapes of the Groq/OpenAI wire format we consume. ---------------
 
+interface GroqToolCallPayload {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+}
+
 interface GroqChatMessagePayload {
   role: string;
   content: string;
   name?: string;
   tool_call_id?: string;
+  tool_calls?: GroqToolCallPayload[];
+}
+
+interface GroqToolDefinitionPayload {
+  type: "function";
+  function: { name: string; description: string; parameters: Record<string, unknown> };
 }
 
 interface GroqUsagePayload {
@@ -38,16 +52,25 @@ interface GroqUsagePayload {
 interface GroqCompletionResponse {
   model: string;
   choices: Array<{
-    message: { content: string | null };
+    message: { content: string | null; tool_calls?: GroqToolCallPayload[] };
     finish_reason: string | null;
   }>;
   usage?: GroqUsagePayload;
 }
 
+// Streamed tool-call deltas arrive as fragments indexed by position; `id`
+// and `function.name` are typically only present on the first fragment for
+// a given index, with `function.arguments` streamed as partial JSON text.
+interface GroqToolCallDeltaPayload {
+  index: number;
+  id?: string;
+  function?: { name?: string; arguments?: string };
+}
+
 interface GroqStreamChunkPayload {
   model: string;
   choices: Array<{
-    delta: { content?: string | null };
+    delta: { content?: string | null; tool_calls?: GroqToolCallDeltaPayload[] };
     finish_reason: string | null;
   }>;
   usage?: GroqUsagePayload | null;
@@ -89,7 +112,41 @@ function toWireMessage(message: LLMMessage): GroqChatMessagePayload {
     content: message.content,
     ...(message.name ? { name: message.name } : {}),
     ...(message.toolCallId ? { tool_call_id: message.toolCallId } : {}),
+    ...(message.toolCalls
+      ? {
+          tool_calls: message.toolCalls.map((call) => ({
+            id: call.id,
+            type: "function" as const,
+            function: { name: call.name, arguments: JSON.stringify(call.arguments) },
+          })),
+        }
+      : {}),
   };
+}
+
+function toWireTool(tool: LLMToolDefinition): GroqToolDefinitionPayload {
+  return {
+    type: "function",
+    function: { name: tool.name, description: tool.description, parameters: tool.parameters },
+  };
+}
+
+function parseToolCallArguments(raw: string): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(raw || "{}");
+    return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function mapToolCalls(toolCalls: GroqToolCallPayload[] | undefined): LLMToolCall[] | undefined {
+  if (!toolCalls || toolCalls.length === 0) return undefined;
+  return toolCalls.map((call) => ({
+    id: call.id,
+    name: call.function.name,
+    arguments: parseToolCallArguments(call.function.arguments),
+  }));
 }
 
 export class GroqProvider implements ILLMProvider {
@@ -111,6 +168,7 @@ export class GroqProvider implements ILLMProvider {
       ...(params.maxTokens !== undefined ? { max_tokens: params.maxTokens } : {}),
       ...(params.topP !== undefined ? { top_p: params.topP } : {}),
       ...(params.stop ? { stop: params.stop } : {}),
+      ...(params.tools && params.tools.length > 0 ? { tools: params.tools.map(toWireTool) } : {}),
       stream,
       ...(stream ? { stream_options: { include_usage: true } } : {}),
     };
@@ -163,6 +221,7 @@ export class GroqProvider implements ILLMProvider {
       model: data.model,
       finishReason: mapFinishReason(choice.finish_reason),
       usage: mapUsage(data.usage),
+      toolCalls: mapToolCalls(choice.message.tool_calls),
       raw: data,
     };
   }
@@ -181,6 +240,11 @@ export class GroqProvider implements ILLMProvider {
     let buffer = "";
     let finishReason: LLMFinishReason | undefined;
     let usage: LLMUsage | undefined;
+    // Accumulates streamed tool-call fragments by their position index —
+    // `id`/`function.name` usually only arrive on that index's first
+    // fragment, while `function.arguments` is streamed as partial JSON text
+    // that must be concatenated and parsed once complete.
+    const toolCallsByIndex = new Map<number, { id: string; name: string; argsText: string }>();
 
     try {
       while (true) {
@@ -212,6 +276,15 @@ export class GroqProvider implements ILLMProvider {
           const choice = chunk.choices[0];
           if (choice?.finish_reason) finishReason = mapFinishReason(choice.finish_reason);
 
+          for (const delta of choice?.delta?.tool_calls ?? []) {
+            const existing = toolCallsByIndex.get(delta.index);
+            toolCallsByIndex.set(delta.index, {
+              id: delta.id ?? existing?.id ?? "",
+              name: delta.function?.name ?? existing?.name ?? "",
+              argsText: (existing?.argsText ?? "") + (delta.function?.arguments ?? ""),
+            });
+          }
+
           const delta = choice?.delta?.content ?? "";
           if (delta) {
             yield { delta, done: false };
@@ -222,6 +295,15 @@ export class GroqProvider implements ILLMProvider {
       reader.releaseLock();
     }
 
-    yield { delta: "", done: true, finishReason: finishReason ?? "stop", usage };
+    const toolCalls: LLMToolCall[] | undefined =
+      toolCallsByIndex.size > 0
+        ? [...toolCallsByIndex.values()].map((call) => ({
+            id: call.id,
+            name: call.name,
+            arguments: parseToolCallArguments(call.argsText),
+          }))
+        : undefined;
+
+    yield { delta: "", done: true, finishReason: finishReason ?? "stop", usage, toolCalls };
   }
 }

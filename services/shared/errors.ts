@@ -1,5 +1,5 @@
 /** Which service domain an error originated from. */
-export type ServiceDomain = "llm" | "stt" | "tts" | "embeddings";
+export type ServiceDomain = "llm" | "stt" | "tts" | "embeddings" | "tools";
 
 export interface ProviderErrorOptions {
   cause?: unknown;

@@ -17,6 +17,27 @@ export interface LLMMessage {
   name?: string;
   /** Set on `role: "tool"` messages to correlate with a prior tool call. */
   toolCallId?: string;
+  /** Set on an `assistant` message that requested one or more tool calls. */
+  toolCalls?: LLMToolCall[];
+}
+
+/**
+ * A tool the model may call, described in the provider-agnostic shape.
+ * `parameters` is JSON Schema (e.g. via Zod's `z.toJSONSchema`) — never a
+ * vendor-specific format.
+ */
+export interface LLMToolDefinition {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
+
+/** A single tool invocation requested by the model. */
+export interface LLMToolCall {
+  id: string;
+  name: string;
+  /** Parsed arguments (the provider is responsible for JSON-parsing them). */
+  arguments: Record<string, unknown>;
 }
 
 /** Why generation stopped. Normalized across providers. */
@@ -50,6 +71,8 @@ export interface LLMGenerateParams {
   topP?: number;
   /** Stop sequences. */
   stop?: string[];
+  /** Tools the model may call this turn. Omit to disable tool calling. */
+  tools?: LLMToolDefinition[];
   /** Abort in-flight requests / streams. */
   signal?: AbortSignal;
 }
@@ -60,6 +83,8 @@ export interface LLMResponse {
   model: string;
   finishReason: LLMFinishReason;
   usage?: LLMUsage;
+  /** Present when `finishReason` is `"tool_calls"`. */
+  toolCalls?: LLMToolCall[];
   /** Untyped provider payload, for debugging/logging only. Do not depend on it. */
   raw?: unknown;
 }
@@ -74,6 +99,8 @@ export interface LLMStreamChunk {
   finishReason?: LLMFinishReason;
   /** Usually only populated on the terminal chunk. */
   usage?: LLMUsage;
+  /** Present on the terminal chunk when `finishReason` is `"tool_calls"`. */
+  toolCalls?: LLMToolCall[];
 }
 
 /** Runtime configuration for an LLM provider (read from env by its factory). */

@@ -41,7 +41,15 @@ export default async function ConversationPage({
   ]);
 
   const chatMessages: ChatMessageItem[] = messages
-    .filter((message) => message.role === "user" || message.role === "assistant")
+    // Tool-calling turns persist the full transcript (assistant tool-call
+    // requests, tool results) so it survives a refresh — but only user-
+    // facing text belongs in the chat bubbles. A tool-call request has empty
+    // content (its `metadata.toolCalls` is what matters), so filtering out
+    // blank messages excludes it along with any stray empty replies.
+    .filter(
+      (message) =>
+        (message.role === "user" || message.role === "assistant") && message.content.trim().length > 0,
+    )
     .map((message) => ({
       id: message.id,
       role: message.role as "user" | "assistant",
