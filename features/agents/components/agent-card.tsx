@@ -9,9 +9,9 @@ function initialsFrom(name: string): string {
   return name.trim().slice(0, 2).toUpperCase() || "AI";
 }
 
-export function AgentCard({ agent }: { agent: Agent }) {
+export function AgentCard({ agent, href }: { agent: Agent; href?: string }) {
   return (
-    <Link href={`/dashboard/agents/${agent.id}`}>
+    <Link href={href ?? `/dashboard/agents/${agent.id}`}>
       <Card className="h-full transition-colors hover:bg-muted/50">
         <CardHeader className="flex items-center gap-3">
           <Avatar size="lg">

@@ -32,7 +32,7 @@ export default async function KnowledgePage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {agents.map((agent) => (
-            <AgentCard key={agent.id} agent={agent} />
+            <AgentCard key={agent.id} agent={agent} href={`/dashboard/knowledge/${agent.id}`} />
           ))}
         </div>
       )}
