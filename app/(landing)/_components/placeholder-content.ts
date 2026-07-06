@@ -61,57 +61,6 @@ export const aiDemoScript = {
     "Done — you're booked for two at The Garden Bistro tonight at 7:00 PM. Want me to add it to your calendar?",
 };
 
-/**
- * TODO(launch): every tier's price and feature list below is illustrative,
- * not final. Replace with real numbers and the actual feature/limit
- * breakdown before launch.
- */
-export const pricingTiers = [
-  {
-    name: "Starter",
-    price: "$0",
-    period: "/mo",
-    description: "For trying Voxinta out and building your first agent.",
-    features: [
-      "1 AI agent",
-      "100 voice minutes / mo",
-      "Community support",
-      "Browser voice (STT/TTS)",
-    ],
-    cta: { label: "Start free", href: "/signup" },
-    highlighted: false,
-  },
-  {
-    name: "Pro",
-    price: "$29",
-    period: "/mo",
-    description: "For teams shipping a real product with Voxinta.",
-    features: [
-      "Unlimited agents",
-      "2,000 voice minutes / mo",
-      "Knowledge base (RAG)",
-      "Tool calling",
-      "Priority support",
-    ],
-    cta: { label: "Start free trial", href: "/signup" },
-    highlighted: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    description: "For orgs that need scale, security, and white-glove support.",
-    features: [
-      "Everything in Pro",
-      "SSO & audit logs",
-      "Dedicated support",
-      "Custom integrations",
-    ],
-    cta: { label: "Talk to us", href: "/signup" },
-    highlighted: false,
-  },
-];
-
 export const faqs = [
   {
     question: "Is Voxinta live during a real phone call, or just in-browser?",
@@ -144,5 +93,4 @@ export const ctaContent = {
   headline: "Ready to give your product a voice?",
   subheadline: "Start free. Upgrade when your agents start doing real work.",
   primaryCta: { label: "Start free", href: "/signup" },
-  secondaryCta: { label: "View pricing", href: "#pricing" },
 };

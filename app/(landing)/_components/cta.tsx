@@ -32,19 +32,13 @@ export function Cta() {
           {ctaContent.subheadline}
         </p>
 
-        <div className="relative mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="relative mt-8 flex justify-center">
           <Link
             href={ctaContent.primaryCta.href}
             className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}
           >
             {ctaContent.primaryCta.label}
           </Link>
-          <a
-            href={ctaContent.secondaryCta.href}
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}
-          >
-            {ctaContent.secondaryCta.label}
-          </a>
         </div>
       </motion.div>
     </section>

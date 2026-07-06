@@ -3,7 +3,6 @@ import { Cta } from "./_components/cta";
 import { Faq } from "./_components/faq";
 import { Features } from "./_components/features";
 import { Hero } from "./_components/hero";
-import { Pricing } from "./_components/pricing";
 
 export default function LandingPage() {
   return (
@@ -11,7 +10,6 @@ export default function LandingPage() {
       <Hero />
       <Features />
       <AiDemo />
-      <Pricing />
       <Faq />
       <Cta />
     </>
