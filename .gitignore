@@ -37,6 +37,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# supabase CLI — local link cache, includes the DB connection string
+# (password and all) for whichever project this repo is linked to
+supabase/.temp
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
