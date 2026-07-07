@@ -113,11 +113,24 @@ async function handleChatRequest(request: NextRequest): Promise<Response> {
 
   const agent = conversation.agent_id ? await getAgent(conversation.agent_id) : null;
 
+  // Messages a regenerate is replacing — computed now, but deliberately not
+  // deleted until a new reply has actually been generated (see the stream's
+  // `finally` below). Deleting up front and generating after left a window
+  // where the conversation had no assistant reply at all: if generation
+  // failed, or a second overlapping regenerate request read the table
+  // mid-way through that window, it would see the last message as "user"
+  // and wrongly report "Nothing to regenerate" — even though the first
+  // request's generation was still in flight. Deferring the delete means a
+  // failed generation leaves the old reply untouched (no data loss), and a
+  // second concurrent request computes the same replacement set from the
+  // same still-intact rows instead of racing against a partial delete.
+  let idsToDelete: string[] = [];
+
   if (parsed.data.type === "regenerate") {
     // A tool-calling turn leaves several messages after the last user
     // message (an assistant tool-call request, tool results, possibly
     // repeated over a few rounds) — not just one. Regenerating means
-    // deleting everything after that last user message, not just the most
+    // replacing everything after that last user message, not just the most
     // recent row.
     const { data: recent } = await supabase
       .from("messages")
@@ -132,8 +145,7 @@ async function handleChatRequest(request: NextRequest): Promise<Response> {
       return NextResponse.json({ success: false, message: "Nothing to regenerate." }, { status: 400 });
     }
 
-    const idsToDelete = messages.slice(0, lastUserIndex).map((message) => message.id);
-    await supabase.from("messages").delete().in("id", idsToDelete);
+    idsToDelete = messages.slice(0, lastUserIndex).map((message) => message.id);
   } else {
     const { error: insertError } = await supabase.from("messages").insert({
       conversation_id: conversationId,
@@ -146,16 +158,22 @@ async function handleChatRequest(request: NextRequest): Promise<Response> {
     }
   }
 
-  const { data: history } = await supabase
+  const { data: historyRows } = await supabase
     .from("messages")
-    .select("role, content, metadata")
+    .select("id, role, content, metadata")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true });
+
+  // The rows a regenerate will replace are still in the table at this point
+  // (see above) — excluded here so the model doesn't see the reply it's
+  // about to be asked to redo.
+  const excludeIds = new Set(idsToDelete);
+  const history = (historyRows ?? []).filter((message) => !excludeIds.has(message.id));
 
   // Retrieve knowledge-base context for this turn using the most recent
   // user message as the query — works for both a fresh message and a
   // regenerate (which has no new content of its own to embed).
-  const lastUserMessage = [...(history ?? [])].reverse().find((message) => message.role === "user");
+  const lastUserMessage = [...history].reverse().find((message) => message.role === "user");
   const context = agent && lastUserMessage
     ? await retrieveContext(supabase, agent.id, lastUserMessage.content)
     : [];
@@ -167,7 +185,7 @@ async function handleChatRequest(request: NextRequest): Promise<Response> {
     // `metadata` here so a later turn's history stays a valid tool-calling
     // transcript (the API rejects a `tool` message not preceded by the
     // assistant message that requested it).
-    ...(history ?? []).map((message) => {
+    ...history.map((message) => {
       const metadata = (message.metadata ?? {}) as {
         toolCalls?: LLMMessage["toolCalls"];
         toolCallId?: string;
@@ -229,6 +247,20 @@ async function handleChatRequest(request: NextRequest): Promise<Response> {
             logger.error("chat", "Failed to persist assistant reply", assistantInsertError, {
               conversationId,
             });
+          } else if (idsToDelete.length > 0) {
+            // Only now — the new reply is safely persisted — remove what
+            // it's replacing. If this insert had failed above, idsToDelete
+            // is left alone, so a failed regenerate never loses the old
+            // reply without a replacement.
+            const { error: deleteError } = await supabase
+              .from("messages")
+              .delete()
+              .in("id", idsToDelete);
+            if (deleteError) {
+              logger.error("chat", "Failed to remove replaced messages after regenerate", deleteError, {
+                conversationId,
+              });
+            }
           }
         }
       }

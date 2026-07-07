@@ -30,8 +30,19 @@ export function ChatInterface({
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string>();
   const abortControllerRef = useRef<AbortController | null>(null);
+  // A synchronous re-entrancy guard, deliberately not `isStreaming` state:
+  // two rapid clicks (e.g. a fast double-click on "Regenerate") can both
+  // fire before React re-renders with isStreaming=true, since state updates
+  // don't repaint mid-microtask. A ref mutates immediately, so the second
+  // call sees it set by the first regardless of render timing — otherwise
+  // both calls hit /api/chat concurrently, which can each delete/replace
+  // the same message and land two replies instead of one.
+  const requestInFlightRef = useRef(false);
 
   async function streamReply(body: Record<string, unknown>) {
+    if (requestInFlightRef.current) return;
+    requestInFlightRef.current = true;
+
     setError(undefined);
     setIsStreaming(true);
     setStreamingContent("");
@@ -69,6 +80,7 @@ export function ChatInterface({
       }
     } finally {
       abortControllerRef.current = null;
+      requestInFlightRef.current = false;
       setIsStreaming(false);
       // Deliberately NOT clearing streamingContent here: useVoiceConversation
       // needs the final accumulated text once isStreaming flips to false, to
