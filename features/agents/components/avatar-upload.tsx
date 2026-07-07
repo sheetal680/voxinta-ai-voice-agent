@@ -5,7 +5,7 @@ import { Camera, Loader2 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { uploadAgentAvatar } from "../actions";
+import { updateAgentAvatar, uploadAgentAvatar } from "../actions";
 import { AVATAR_ALLOWED_MIME_TYPES, AVATAR_MAX_SIZE_BYTES } from "../constants";
 
 function initialsFrom(agentName: string): string {
@@ -13,10 +13,13 @@ function initialsFrom(agentName: string): string {
 }
 
 export function AvatarUpload({
+  agentId,
   agentName,
   value,
   onChange,
 }: {
+  /** Omitted while creating a new agent — there's no row yet to persist to. */
+  agentId?: string;
   agentName: string;
   value?: string;
   onChange: (url: string) => void;
@@ -52,6 +55,13 @@ export function AvatarUpload({
         return;
       }
       onChange(result.data.url);
+
+      if (agentId) {
+        const saveResult = await updateAgentAvatar(agentId, result.data.url);
+        if (!saveResult.success) {
+          setError(saveResult.message ?? "Upload saved, but failed to persist. Please try again.");
+        }
+      }
     });
   }
 

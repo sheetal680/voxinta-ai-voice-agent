@@ -117,6 +117,7 @@ export function AgentForm({ agent }: { agent?: Agent }) {
               <FormLabel>Avatar</FormLabel>
               <FormControl>
                 <AvatarUpload
+                  agentId={agent?.id}
                   agentName={nameValue}
                   value={field.value}
                   onChange={field.onChange}

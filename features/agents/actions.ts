@@ -177,6 +177,55 @@ export async function deleteAgent(id: string): Promise<ActionResult> {
   return { success: true };
 }
 
+/**
+ * Persists just the avatar_url column, called immediately after a successful
+ * upload rather than waiting on the full "Save changes" submit — the upload
+ * button's own visual feedback (preview swaps, label flips to "Change
+ * photo") already reads as "done," so it needs to actually be done. Scoped to
+ * only this column (not routed through `updateAgent`) so it can't
+ * accidentally persist other fields the user is still mid-editing and hasn't
+ * chosen to save yet.
+ */
+export async function updateAgentAvatar(agentId: string, avatarUrl: string): Promise<ActionResult> {
+  if (!idSchema.safeParse(agentId).success) {
+    return { success: false, message: "Invalid agent id." };
+  }
+
+  const { supabase, user } = await requireUser();
+  if (!user) {
+    return { success: false, message: "You must be signed in." };
+  }
+
+  const { data: existing } = await supabase
+    .from("agents")
+    .select("avatar_url")
+    .eq("id", agentId)
+    .eq("owner_id", user.id)
+    .maybeSingle();
+
+  if (!existing) {
+    return { success: false, message: "Agent not found." };
+  }
+
+  const { error } = await supabase
+    .from("agents")
+    .update({ avatar_url: avatarUrl || null })
+    .eq("id", agentId)
+    .eq("owner_id", user.id);
+
+  if (error) {
+    return { success: false, message: error.message };
+  }
+
+  if (existing.avatar_url && existing.avatar_url !== avatarUrl) {
+    await removeAvatarFile(supabase, existing.avatar_url);
+  }
+
+  revalidatePath("/dashboard/agents");
+  revalidatePath(`/dashboard/agents/${agentId}`);
+  return { success: true };
+}
+
 export async function uploadAgentAvatar(formData: FormData): Promise<ActionResult<{ url: string }>> {
   const file = formData.get("file");
   if (!(file instanceof File)) {
