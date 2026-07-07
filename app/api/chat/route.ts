@@ -8,6 +8,7 @@ import type { Database, Json } from "@/types/database";
 import { getAgent } from "@/features/agents/queries";
 import { buildSystemPrompt } from "@/features/chat/prompt";
 import { chatRequestSchema } from "@/features/chat/schemas";
+import { getEnabledToolDefinitionsForAgent } from "@/features/integrations/queries";
 import { retrieveContext } from "@/features/knowledge/retrieval";
 
 /**
@@ -181,6 +182,11 @@ async function handleChatRequest(request: NextRequest): Promise<Response> {
     }),
   ];
 
+  // Tools are agent-scoped (see /dashboard/integrations): an agent-less
+  // conversation gets none, rather than falling back to runWithTools' own
+  // default of every registered tool.
+  const enabledTools = agent ? await getEnabledToolDefinitionsForAgent(agent.id) : [];
+
   const provider = getLLMProvider();
   const startedAt = Date.now();
   const encoder = new TextEncoder();
@@ -193,6 +199,7 @@ async function handleChatRequest(request: NextRequest): Promise<Response> {
           messages: llmMessages,
           temperature: agent?.temperature,
           maxTokens: agent?.max_tokens,
+          tools: enabledTools,
           signal: request.signal,
           onIntermediateMessage: (message) =>
             persistIntermediateMessage(supabase, conversationId, agent?.id ?? null, message),
